@@ -1,0 +1,54 @@
+{
+  "position_title": "K-1, TEAM LEADER",
+  "name": "Jane Q. Expert",
+  "dob": "1980-05-17",
+  "citizenship": "Wonderland",
+  "education": [
+    {
+      "institution": "Fictional University",
+      "degree": "M.Sc. in Computer Science",
+      "start_year": "2002",
+      "end_year": "2004",
+      "notes": "Thesis: Scalable systems"
+    },
+    {
+      "institution": "Imaginary College",
+      "degree": "B.Sc. in Electrical Engineering",
+      "start_year": "1998",
+      "end_year": "2002"
+    }
+  ],
+  "employment": [
+    {
+      "period": "Jan 2020 - Present",
+      "title": "Lead Consultant",
+      "organization": "Acme Consulting Ltd.",
+      "contact": "Tel: +1-555-0100 / jane@example.com",
+      "country": "Fantasia",
+      "summary": "Lead technical team on large-scale digital transformation projects focused on cloud migration."
+    },
+    {
+      "period": "Aug 2015 - Dec 2019",
+      "title": "Senior Systems Engineer",
+      "organization": "Systems & Co.",
+      "contact": "Tel: +1-555-0200 / ref@example.com",
+      "country": "Utopia",
+      "summary": "Designed and implemented secure infrastructure for government clients."
+    }
+  ],
+  "memberships": "Member of the Association of Imaginary Engineers; Author of several conference papers.",
+  "languages": ["English (fluent)", "French (working knowledge)"],
+  "adequacy_for_assignment": [
+    { "task": "Technical oversight", "reference": "Examples of prior technical oversight on large transformation projects" },
+    { "task": "Team coordination", "reference": "Led multi-disciplinary teams across regional deployments" },
+    { "task": "Deliverables QA", "reference": "QA and compliance checks for project deliverables" },
+    { "task": "Client liaison", "reference": "Primary contact for client engagement and reporting" }
+  ],
+  "contact": {
+    "email": "jane@example.com",
+    "phone": "+1-555-0100"
+  },
+  "certification_text": "I certify that the information provided is true and correct to the best of my knowledge.",
+  "authorized_representative": "John Manager",
+  "notes": "Optional free-text field for any mapping hints or raw text snippets"
+}

@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tech6-cv-generator"
+version = "2.0.0"
+description = "Generate TECH-6 CV documents (DOCX) from structured JSON, with schema mapping and missing-field highlighting."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "enonymous1" }]
+keywords = ["docx", "cv", "tech-6", "document-generation", "cli"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "python-docx>=0.8.11",
+    "pdfplumber>=0.7.5",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "ruff>=0.6",
+]
+
+[project.scripts]
+tech6-cv-generator = "tech6_cv_generator.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/enonymous1/tech6-cv-generator"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+
+[tool.ruff.lint.per-file-ignores]
+# Long template strings in the legacy builder/mapper, not new code.
+"src/tech6_cv_generator/form_builder.py" = ["E501"]
+"src/tech6_cv_generator/schema_mappers.py" = ["E501"]

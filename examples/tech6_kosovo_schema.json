@@ -1,0 +1,68 @@
+{
+  "expert_profile": {
+    "meta_data": {
+      "rfp_reference": "{Insert RFP reference}",
+      "form_type": "TECH-6",
+      "proposed_position_code": "K-1",
+      "proposed_position_title": "Team Leader"
+    },
+    "personal_info": {
+      "full_name": "",
+      "date_of_birth": "DD/MM/YYYY",
+      "citizenship": "",
+      "residence_country": "",
+      "contact_details": {
+        "email": "",
+        "phone": ""
+      }
+    },
+    "education": [
+      {
+        "institution": "",
+        "degree_diploma": "",
+        "start_date": "MM/YYYY",
+        "end_date": "MM/YYYY",
+        "notes": "Must match degree requirements (e.g., BA/BS in Systems Engineering)"
+      }
+    ],
+    "employment_record": [
+      {
+        "period_from": "MM/YYYY",
+        "period_to": "Present",
+        "employer_name": "",
+        "position_title": "",
+        "country": "",
+        "summary_of_activities": "Must highlight relevance to the assignment (e.g., interoperability, governance, service bus design).",
+        "reference_contact": {
+          "name": "",
+          "title": "",
+          "email": "",
+          "phone": ""
+        }
+      }
+    ],
+    "professional_associations": [
+      "List memberships here (e.g., PMI, IEEE, ISACA)"
+    ],
+    "publications": [
+      "List relevant publications here"
+    ],
+    "language_skills": [
+      {
+        "language": "English",
+        "proficiency": "Fluent (Reading, Speaking, Writing)"
+      }
+    ],
+    "adequacy_for_assignment": [
+      {
+        "task_assigned": "List the specific deliverable/task from TECH-5 (e.g., Design of NIF Legal Layer)",
+        "prior_work_reference": "Narrative describing specific past projects that prove capability for this task. Include Project Name, Client, and specific role performed."
+      }
+    ],
+    "certification_statement": {
+      "text": "I, the undersigned, certify that to the best of my knowledge and belief, this CV correctly describes myself, my qualifications, and my experience, and I am available, as and when necessary, to undertake the assignment in case of an award. I understand that any misstatement or misrepresentation described herein may lead to my disqualification or dismissal by the Client, and/or sanctions by the Bank.",
+      "expert_signature_date": "DD/MM/YYYY",
+      "representative_signature_date": "DD/MM/YYYY"
+    }
+  }
+}

@@ -1,0 +1,34 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.venv/
+venv/
+ENV/
+env/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+coverage.xml
+*.cover
+.hypothesis/
+
+# Local configuration
+.vscode/
+.env
+
+# Generated outputs (never commit real CVs or generated documents)
+outputs/
+*.docx
+!examples/sample_resume.docx
+*.log
+.DS_Store

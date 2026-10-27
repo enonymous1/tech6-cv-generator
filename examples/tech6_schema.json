@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TECH-6 CV Schema",
+  "type": "object",
+  "properties": {
+    "position_title": {"type": "string"},
+    "name": {"type": "string"},
+    "dob": {"type": "string"},
+    "citizenship": {"type": "string"},
+    "contact": {
+      "type": "object",
+      "properties": {
+        "email": {"type": "string", "format": "email"},
+        "phone": {"type": "string"}
+      },
+      "additionalProperties": true
+    },
+    "education": {
+      "type": ["array", "string"],
+      "items": {
+        "type": "object",
+        "properties": {
+          "institution": {"type": "string"},
+          "degree": {"type": "string"},
+          "start_year": {"type": "string"},
+          "end_year": {"type": "string"},
+          "notes": {"type": "string"}
+        }
+      }
+    },
+    "employment": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "period": {"type": "string"},
+          "title": {"type": "string"},
+          "organization": {"type": "string"},
+          "contact": {"type": "string"},
+          "country": {"type": "string"},
+          "summary": {"type": "string"}
+        }
+      }
+    },
+    "memberships": {"type": "string"},
+    "publications": {"type": ["array", "string"]},
+    "languages": {"type": "array", "items": {"type": "string"}},
+    "adequacy_for_assignment": {
+      "type": "array",
+      "items": {"type": "object", "properties": {"task": {"type": "string"}, "reference": {"type": "string"}}}
+    },
+    "certification_text": {"type": "string"},
+    "authorized_representative": {"type": "string"}
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,31 @@
+{
+  "position_title": "K-1, TEAM LEADER",
+  "name": "Jane Q. Expert",
+  "dob": "1980-05-17",
+  "citizenship": "Wonderland",
+  "education": "M.Sc. in Computer Science, Fictional University (2002-2004). B.Sc. in Electrical Engineering, Imaginary College (1998-2002).",
+  "employment": [
+    {
+      "period": "Jan 2020 - Present",
+      "title": "Lead Consultant",
+      "organization": "Acme Consulting Ltd.",
+      "contact": "Tel: +1-555-0100 / jane@example.com",
+      "country": "Fantasia",
+      "summary": "Lead technical team on large-scale digital transformation projects focused on cloud migration."
+    },
+    {
+      "period": "Aug 2015 - Dec 2019",
+      "title": "Senior Systems Engineer",
+      "organization": "Systems & Co.",
+      "contact": "Tel: +1-555-0200 / ref@example.com",
+      "country": "Utopia",
+      "summary": "Designed and implemented secure infra for government clients."
+    }
+  ],
+  "memberships": "Member of the Association of Imaginary Engineers; Author of several conference papers.",
+  "languages": "English (fluent), French (working knowledge)",
+  "tasks": "Technical oversight; team coordination; deliverables QA; client liaison.",
+  "contact": { "email": "jane@example.com", "phone": "+1-555-0100" },
+  "certification_text": "I certify that the information provided is true and correct to the best of my knowledge.",
+  "authorized_representative": "John Manager"
+}
