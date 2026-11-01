@@ -1,5 +1,38 @@
 # Changelog
 
+## 2.2.0 — 2026-11-01
+
+Static demo site for GitHub Pages, plus a JSON authoring form.
+
+### Added
+
+- `site/` — landing page and a JSON authoring form (vanilla HTML/CSS/JS,
+  no dependencies, no backend). The form covers the canonical TECH-6
+  fields, flags the same gaps the builder would highlight (missing
+  personal/contact fields, references without contact details), loads
+  the fictional sample or a JSON file, previews the exact JSON that
+  will be downloaded, and copies the CLI command to generate the DOCX.
+  Nothing entered leaves the browser; the page states plainly that it
+  does not generate the DOCX itself.
+- `.github/workflows/pages.yml` — Pages deploy on push to `main`
+  (plus manual dispatch): ruff + pytest first, then the sample DOCX
+  is generated in CI from the fictional sample data and staged into
+  the deploy artifact, so the downloadable sample always matches the
+  current code. One-time setup after the first push: Settings →
+  Pages → Source: GitHub Actions.
+- `tests/test_site.py` — site file/reference checks, workflow
+  staging checks, and (via Node when available) the form logic's
+  sample round-trip.
+
+### Notes
+
+- `site/sample_data.json` is a copy of `examples/sample_data.json`
+  for local previews; the Pages workflow overwrites it at build time
+  with the canonical copy so it cannot drift (see `site/README.md`).
+- `site/sample-output.docx` is deliberately not committed: it is
+  generated in CI (see above). The README Deployment section now
+  describes the demo deploy; the tool itself remains a local CLI.
+
 ## 2.1.0 — 2026-11-01
 
 Staff review of v2.0.0 (full findings in `docs/REVIEW.md`) with the

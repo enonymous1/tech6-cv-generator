@@ -1,0 +1,99 @@
+/* tech6-cv-generator demo site: plain, readable, no framework. */
+
+:root {
+  --ink: #1a1a1a;
+  --muted: #555;
+  --line: #ddd;
+  --accent: #2b5ea7;
+  --accent-soft: #eef4ff;
+  --warn-soft: #fff8d6;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--ink);
+  line-height: 1.55;
+  margin: 0;
+  padding: 0 1rem 2rem;
+}
+
+header, main, footer { max-width: 920px; margin: 0 auto; }
+
+header { padding: 2rem 0 1rem; border-bottom: 2px solid var(--ink); }
+
+h1 { margin: 0 0 0.25rem; }
+h2 { margin-top: 2.5rem; }
+h3 { margin-top: 1.75rem; }
+
+.tagline { font-size: 1.15rem; }
+.note { color: var(--muted); }
+
+a { color: var(--accent); }
+
+pre {
+  background: #f6f6f6;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 1rem;
+  overflow-x: auto;
+}
+
+code { font-size: 0.95em; }
+
+fieldset {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin: 1rem 0;
+  padding: 1rem;
+}
+
+legend { font-weight: 600; padding: 0 0.5rem; }
+
+label { display: block; margin: 0.6rem 0; font-size: 0.95rem; }
+
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+textarea {
+  display: block;
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.5rem;
+  border: 1px solid #bbb;
+  border-radius: 4px;
+  font: inherit;
+}
+
+.dyn-row {
+  border: 1px dashed var(--line);
+  border-radius: 6px;
+  padding: 0.5rem 1rem 1rem;
+  margin: 0.75rem 0;
+}
+
+.actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0; }
+
+button, .file-button {
+  cursor: pointer;
+  font: inherit;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  border: 1px solid var(--accent);
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+
+button.primary { background: var(--accent); color: #fff; }
+button.secondary { border-color: #bbb; background: #fff; }
+button.remove-row { margin-top: 0.5rem; }
+
+.file-button input { display: none; }
+
+#form-status { min-height: 1.5em; color: var(--muted); }
+
+#validation ul { background: var(--warn-soft); border: 1px solid #e6d88a; border-radius: 6px; padding: 1rem 1rem 1rem 2rem; }
+#validation .ok { color: #2e7d32; }
+
+footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--line); color: var(--muted); }

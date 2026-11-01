@@ -1,0 +1,64 @@
+name: Pages demo
+
+# Deploys the static demo site (site/) to GitHub Pages. The site is
+# static by design: the JSON authoring form runs in the browser and
+# DOCX generation stays with the Python CLI. This workflow therefore
+# does two things the static files alone cannot: it gates the deploy
+# on the test suite, and it generates the downloadable sample DOCX
+# from the fictional sample data, so the demo artifact always matches
+# the current code instead of a committed binary.
+#
+# One-time setup after the first push: Settings -> Pages -> Source:
+# GitHub Actions. Do not set it back to branch deploy while this
+# workflow runs.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev]"
+      # Gate the deploy on the same checks as CI.
+      - run: ruff check src tests
+      - run: pytest -q
+      # Generate the sample DOCX that the site offers for download.
+      - run: tech6-cv-generator generate examples/sample_data.json --output-dir site-build-outputs
+      # Stage the site. The sample JSON is overwritten with the
+      # canonical copy from examples/ so the deployed sample can
+      # never drift from the repository sample (see site/README.md).
+      - run: |
+          mkdir -p site-build
+          cp -r site/* site-build/
+          cp examples/sample_data.json site-build/sample_data.json
+          cp site-build-outputs/Form_TECH-6_CV_Jane_Q._Expert.docx site-build/sample-output.docx
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site-build
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

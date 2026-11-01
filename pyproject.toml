@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tech6-cv-generator"
-version = "2.1.0"
+version = "2.2.0"
 description = "Generate TECH-6 CV documents (DOCX) from structured JSON, with schema mapping and missing-field highlighting."
 readme = "README.md"
 requires-python = ">=3.10"

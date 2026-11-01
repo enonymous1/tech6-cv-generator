@@ -60,7 +60,7 @@ Verify the install:
 
 ```bash
 tech6-cv-generator --version
-# tech6-cv-generator 2.1.0
+# tech6-cv-generator 2.2.0
 ```
 
 For development work (tests, linting), install with the dev extras
@@ -163,7 +163,7 @@ pip install -e ".[dev]"
 Run the checks:
 
 ```bash
-pytest -q            # test suite (21 tests)
+pytest -q            # test suite (26 tests)
 ruff check src tests # lint
 make generate-sample # generate the fictional sample into ./outputs
 ```
@@ -197,6 +197,12 @@ remove these comment markers. -->
   and a Kosovo-style schema template with placeholder names.
 - `docs/REVIEW.md` — the staff-level review of v2.0.0 and the fixes
   applied in v2.1.0, including what was deliberately deferred and why.
+- `site/` — the static demo site deployed to GitHub Pages: landing
+  page plus a JSON authoring form that runs entirely in the browser
+  (no backend, nothing uploaded). See `site/README.md` for the local
+  preview and the build-time sample copy.
+- `.github/workflows/pages.yml` — the Pages deploy workflow: tests
+  first, then it generates the sample DOCX in CI and stages the site.
 
 ### Verifying a change without breaking generated output
 
@@ -209,18 +215,30 @@ it — see `tests/test_staff_review_fixes.py` for the pattern.
 
 ## Deployment
 
-There is no hosted service to deploy: this is a command-line tool and
-library, not a web application, so there is no server, database, or
-GitHub Pages site involved.
+The tool itself is a local CLI and library — there is no server or
+database to deploy. What *does* deploy is the static demo site.
 
-Releasing a new version means:
+### Demo site (GitHub Pages)
+
+Live demo, after the first deploy: <https://enonymous1.github.io/tech6-cv-generator/>
+
+On every push to `main`, `.github/workflows/pages.yml` runs the test
+suite, generates the sample DOCX from the fictional sample data, and
+deploys `site/` to GitHub Pages. The site is static: the JSON
+authoring form runs in the visitor's browser and nothing is uploaded;
+DOCX generation still happens with the CLI. One-time setup after the
+first push: Settings → Pages → Source: GitHub Actions (do not set it
+back to branch deploy while this workflow runs).
+
+### Releasing a new version
 
 1. Bump the version in `pyproject.toml` and
    `src/tech6_cv_generator/__init__.py`, and add a `CHANGELOG.md`
    entry.
 2. Commit and push to `main`. GitHub Actions runs ruff and pytest on
-   Python 3.10–3.13 (see `.github/workflows/ci.yml`).
-3. Tag the release (`git tag v2.1.0 && git push origin v2.1.0`) and
+   Python 3.10–3.13 (see `.github/workflows/ci.yml`), and the Pages
+   workflow deploys the demo site.
+3. Tag the release (`git tag v2.2.0 && git push origin v2.2.0`) and
    create a GitHub release from the tag.
 
 Publishing to PyPI is not configured yet. Until it is, users install
