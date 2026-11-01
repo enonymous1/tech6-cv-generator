@@ -1,24 +1,93 @@
-"""FormBuilder
+"""FormBuilder: render one TECH-6 CV document from a data dictionary.
 
-Provides FormBuilder that accepts a data dictionary and generates a TECH-6 CV Word document.
+The TECH-6 form is the curriculum vitae form used in technical proposals
+for consulting assignments procured by multilateral development banks.
+This builder reproduces its layout: personal info, education, employment
+record, memberships/languages, adequacy table, contact/certification,
+and signatures.
+
+Two conventions matter for the rest of the codebase, so they are stated
+here rather than left implicit:
+
+* Missing or placeholder data is *highlighted in yellow* in the document
+  and counted in ``self.report``. Highlighting is the product's way of
+  saying "this CV is not submittable yet" without refusing to generate
+  a draft — a batch report can then list exactly which CVs have gaps.
+* A build is *not* a mutation of a shared document: ``build()`` starts
+  from a fresh ``Document`` and a fresh report every time, so calling
+  it twice on one builder produces two identical documents instead of
+  one document with every section duplicated.
 """
+
+from __future__ import annotations
+
+import re
 from pathlib import Path
 from typing import Any, Dict, List
 
 from docx import Document
 from docx.enum.table import WD_ALIGN_VERTICAL
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.oxml import OxmlElement
-from docx.oxml.ns import qn
 from docx.shared import Inches, Pt
+
+from .docx_helpers import (
+    HEADER_FILL,
+    add_paragraph_border,
+    highlight_run,
+    set_cell_borders,
+    set_table_cell_margins,
+    shade_cell,
+)
+
+# Characters that are never allowed in a generated filename. This matters
+# because the filename is derived from the expert's name, which comes
+# from untrusted JSON input: without sanitizing, a name like
+# ``../../secret`` or ``a/b`` would write outside the output directory.
+_SAFE_STEM_RE = re.compile(r"[^A-Za-z0-9_.\-]+")
+
+
+def is_placeholder(value: Any) -> bool:
+    """Return True when ``value`` is missing or an obvious form prompt.
+
+    The same rule is used for the personal-info table, the filename
+    fallback, and (via the builder) the report, so a value cannot be
+    "missing" in one place and "present" in another. A value counts as a
+    placeholder when it is empty, wrapped in braces (``{Insert ...}``),
+    or starts with ``insert`` — the three shapes the TECH-6 templates
+    themselves use for prompts.
+    """
+    if not isinstance(value, str) or not value.strip():
+        return True
+    stripped = value.strip()
+    return (
+        stripped.startswith("{")
+        or stripped.endswith("}")
+        or stripped.lower().startswith("insert")
+    )
+
+
+def safe_filename_stem(name: str, fallback: str = "expert") -> str:
+    """Derive a safe filename stem from an expert name.
+
+    Spaces become underscores and every other unsafe character collapses
+    to a single underscore; leading dots are stripped so ``..`` can
+    never climb out of the output directory. ``fallback`` is used when
+    nothing safe remains.
+    """
+    stem = _SAFE_STEM_RE.sub("_", name.strip().replace(" ", "_")).strip("._")
+    return stem or fallback
 
 
 class FormBuilder:
     def __init__(self, data: Dict[str, Any]):
         self.data = data or {}
         self.doc = Document()
+        self.report = self._fresh_report()
+
+    @staticmethod
+    def _fresh_report() -> Dict[str, Any]:
         # Report of issues/highlights detected during build
-        self.report = {
+        return {
             "missing_personal": [],  # list of personal fields that were missing/placeholder
             "highlighted_count": 0,  # total number of highlighted runs applied
             "employment_highlights": [],  # short descriptions for employment highlights
@@ -33,7 +102,14 @@ class FormBuilder:
         If output_path is not provided, a filename will be created in
         ``output_dir`` (default ``outputs/`` in the current working directory).
         An existing file is never overwritten: a numeric suffix is appended.
+
+        The document and report are rebuilt from scratch on every call,
+        so a builder may be reused safely.
         """
+        # Fresh document and report per build: reusing the previous
+        # document would append every section a second time.
+        self.doc = Document()
+        self.report = self._fresh_report()
         self._add_header()
         self._add_personal_info()
         self._add_education()
@@ -46,12 +122,13 @@ class FormBuilder:
         # Default output file
         if not output_path:
             raw_name = (self.data.get("name") or "").strip()
-            # Treat obvious placeholders as missing
-            if not raw_name or raw_name.startswith("{") or "insert" in raw_name.lower():
-                stem = (self.data.get("_source_stem") or "expert").replace(" ", "_")
+            # Treat obvious placeholders as missing, using the same rule
+            # as the personal-info table (see is_placeholder).
+            if is_placeholder(raw_name):
+                stem = safe_filename_stem(str(self.data.get("_source_stem") or "expert"))
                 base_name = f"Form_TECH-6_CV_{stem}"
             else:
-                base_name = f"Form_TECH-6_CV_{raw_name.replace(' ', '_')}"
+                base_name = f"Form_TECH-6_CV_{safe_filename_stem(raw_name)}"
 
             outputs_dir = Path(output_dir) if output_dir else Path("outputs")
             outputs_dir.mkdir(parents=True, exist_ok=True)
@@ -63,13 +140,16 @@ class FormBuilder:
                 counter += 1
                 candidate = outputs_dir / f"{base_name}_{counter}.docx"
             output_path = str(candidate)
+        else:
+            # An explicit path is the caller's choice, but its parent
+            # directories are still created so a build does not fail
+            # merely because the target folder does not exist yet.
+            parent = Path(output_path).parent
+            if str(parent):
+                parent.mkdir(parents=True, exist_ok=True)
 
         self.doc.save(output_path)
-        # record in report
-        try:
-            self.report["output_path"] = output_path
-        except Exception:
-            pass
+        self.report["output_path"] = output_path
         return output_path
 
     def _add_header(self):
@@ -98,36 +178,12 @@ class FormBuilder:
             table_info.columns[1].width = Inches(4)
         except Exception:
             pass
-        # add small cell padding for readability (top, left, bottom, right in twips/dxa)
-        try:
-            tbl = table_info._tbl
-            tblPr = tbl.get_or_add_tblPr()
-            tblCellMar = OxmlElement('w:tblCellMar')
-            for side, val in (('top', '120'), ('left', '160'), ('bottom', '120'), ('right', '160')):
-                elem = OxmlElement(f'w:{side}')
-                elem.set(qn('w:w'), val)
-                elem.set(qn('w:type'), 'dxa')
-                tblCellMar.append(elem)
-            tblPr.append(tblCellMar)
-        except Exception:
-            pass
-        # ensure visible gridlines (table borders) like the PDF - set borders explicitly on each cell
-        try:
-            for row in table_info.rows:
-                for cell in row.cells:
-                    tc = cell._tc
-                    tcPr = tc.get_or_add_tcPr()
-                    tcBorders = OxmlElement('w:tcBorders')
-                    for edge in ('top', 'left', 'bottom', 'right'):
-                        elem = OxmlElement(f'w:{edge}')
-                        elem.set(qn('w:val'), 'single')
-                        elem.set(qn('w:sz'), '4')
-                        elem.set(qn('w:space'), '0')
-                        elem.set(qn('w:color'), '000000')
-                        tcBorders.append(elem)
-                    tcPr.append(tcBorders)
-        except Exception:
-            pass
+        # Small cell padding for readability (values in dxa, see docx_helpers).
+        set_table_cell_margins(table_info)
+        # Visible gridlines, like the PDF: borders on every cell.
+        for row in table_info.rows:
+            for cell in row.cells:
+                set_cell_borders(cell)
 
         # Left column labels in bold
         left_labels = ["Position Title and No.", "Name of Expert:", "Date of Birth:", "Country of Citizenship/Residence"]
@@ -151,8 +207,9 @@ class FormBuilder:
             right_cell = table_info.cell(i, 1)
             val = values[i]
             needs_highlight = False
-            # Detect missing or placeholder values (empty, placeholders wrapped in braces, or obvious insert prompts)
-            if not isinstance(val, str) or not val.strip() or val.strip().startswith("{") or val.strip().endswith("}") or val.strip().lower().startswith("insert"):
+            # Missing or placeholder values, by the shared rule in
+            # is_placeholder (braces, "insert" prompts, or empty).
+            if is_placeholder(val):
                 # Provide a helpful placeholder for empty citizenship field specifically
                 if i == 3 and (not isinstance(val, str) or not val.strip()):
                     val = "{Insert country of citizenship/residence}"
@@ -170,26 +227,14 @@ class FormBuilder:
 
             right_cell.text = val
             for run in right_cell.paragraphs[0].runs:
-                try:
-                    run.font.size = Pt(10)
-                except Exception:
-                    pass
-                try:
-                    if needs_highlight:
-                        # apply yellow shading to indicate missing or incomplete info
-                        rPr = run._r.get_or_add_rPr()
-                        shd = OxmlElement('w:shd')
-                        shd.set(qn('w:fill'), 'FFFF00')
-                        rPr.append(shd)
-                except Exception:
-                    pass
+                run.font.size = Pt(10)
+                if needs_highlight:
+                    # Yellow shading marks missing or incomplete info.
+                    highlight_run(run)
 
             # If we added shading, increment the global highlighted counter
             if needs_highlight:
-                try:
-                    self.report["highlighted_count"] += 1
-                except Exception:
-                    pass
+                self.report["highlighted_count"] += 1
 
             # add paragraph spacing (space before/after) to add breathing room inside cells
             try:
@@ -313,15 +358,8 @@ class FormBuilder:
                 cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
             except Exception:
                 pass
-            # Optional light gray fill for header
-            try:
-                tc = cell._tc
-                tcPr = tc.get_or_add_tcPr()
-                shd = OxmlElement('w:shd')
-                shd.set(qn('w:fill'), 'F2F2F2')
-                tcPr.append(shd)
-            except Exception:
-                pass
+            # Light gray fill for the header row.
+            shade_cell(cell, HEADER_FILL)
 
         employment: List[Dict[str, Any]] = self.data.get("employment", [])
         if not employment:
@@ -388,22 +426,13 @@ class FormBuilder:
 
                 p_ref = cell.add_paragraph()
                 run = p_ref.add_run(ref_text)
-                try:
-                    if needs_highlight:
-                        # set yellow shading on the run to indicate missing/incomplete references
-                        rPr = run._r.get_or_add_rPr()
-                        shd = OxmlElement('w:shd')
-                        shd.set(qn('w:fill'), 'FFFF00')
-                        rPr.append(shd)
-                        # record employment highlight and bump the counter
-                        try:
-                            summary = job.get("organization") or job.get("title") or ref_text
-                            self.report["employment_highlights"].append(summary)
-                            self.report["highlighted_count"] += 1
-                        except Exception:
-                            pass
-                except Exception:
-                    pass
+                if needs_highlight:
+                    # Yellow shading marks missing/incomplete references.
+                    highlight_run(run)
+                    # Record the employment highlight and bump the counter.
+                    summary = job.get("organization") or job.get("title") or ref_text
+                    self.report["employment_highlights"].append(summary)
+                    self.report["highlighted_count"] += 1
 
                 # Country
                 row[2].text = job.get("country", "")
@@ -559,23 +588,11 @@ class FormBuilder:
                 # highlight missing contact fields (email/phone) individually
                 if r == 0 and not email:
                     for run in table_contact.cell(0, 1).paragraphs[0].runs:
-                        try:
-                            rPr = run._r.get_or_add_rPr()
-                            shd = OxmlElement('w:shd')
-                            shd.set(qn('w:fill'), 'FFFF00')
-                            rPr.append(shd)
-                        except Exception:
-                            pass
+                        highlight_run(run)
                     self.report["highlighted_count"] += 1
                 if r == 1 and not phone:
                     for run in table_contact.cell(1, 1).paragraphs[0].runs:
-                        try:
-                            rPr = run._r.get_or_add_rPr()
-                            shd = OxmlElement('w:shd')
-                            shd.set(qn('w:fill'), 'FFFF00')
-                            rPr.append(shd)
-                        except Exception:
-                            pass
+                        highlight_run(run)
                     self.report["highlighted_count"] += 1
                 # consider contact missing only if both missing
                 try:
@@ -614,25 +631,14 @@ class FormBuilder:
             except Exception:
                 pass
 
-            # Add a top-border paragraph (the visible line) in each cell
+            # Add a top-border paragraph (the visible line) in each cell.
             for c in range(3):
                 cell = table_sig.cell(0, c)
                 p_line = cell.paragraphs[0]
-                try:
-                    p_pr = p_line._p.get_or_add_pPr()
-                    pbdr = OxmlElement('w:pBdr')
-                    top = OxmlElement('w:top')
-                    top.set(qn('w:val'), 'single')
-                    top.set(qn('w:sz'), '4')
-                    top.set(qn('w:color'), 'BFBFBF')
-                    pbdr.append(top)
-                    p_pr.append(pbdr)
-                    # tighter spacing so the label sits close to the line
-                    # set zero spacing to reduce offset between the line and subsequent label
-                    p_line.paragraph_format.space_before = Pt(0)
-                    p_line.paragraph_format.space_after = Pt(0)
-                except Exception:
-                    pass
+                add_paragraph_border(p_line, "top", sz="4", space="0", color="BFBFBF")
+                # Tighter spacing so the label sits close to the line.
+                p_line.paragraph_format.space_before = Pt(0)
+                p_line.paragraph_format.space_after = Pt(0)
 
             # Name column: label and value under the line
             name_cell = table_sig.cell(0, 0)
@@ -677,21 +683,11 @@ class FormBuilder:
             except Exception:
                 pass
 
-            # Remove inner borders so only the top lines (paragraph borders) are visible.
-            # Explicitly nil all cell borders (including top) to avoid duplicate/offset lines
-            try:
-                for row in table_sig.rows:
-                    for cell in row.cells:
-                        tc = cell._tc
-                        tcPr = tc.get_or_add_tcPr()
-                        tcBorders = OxmlElement('w:tcBorders')
-                        for edge in ('top', 'left', 'bottom', 'right'):
-                            elem = OxmlElement(f'w:{edge}')
-                            elem.set(qn('w:val'), 'nil')
-                            tcBorders.append(elem)
-                        tcPr.append(tcBorders)
-            except Exception:
-                pass
+            # Remove inner borders so only the top lines (paragraph borders)
+            # are visible; nil all cell borders to avoid duplicate lines.
+            for row in table_sig.rows:
+                for cell in row.cells:
+                    set_cell_borders(cell, val="nil")
             return table_sig
 
         # Spacer before signatures
@@ -738,13 +734,4 @@ class FormBuilder:
     def _add_horizontal_rule(self):
         """Insert a horizontal rule (paragraph bottom border) similar to the lines in the PDF."""
         p = self.doc.add_paragraph()
-        # create a paragraph border (bottom)
-        p_pr = p._p.get_or_add_pPr()
-        p_bdr = OxmlElement('w:pBdr')
-        bottom = OxmlElement('w:bottom')
-        bottom.set(qn('w:val'), 'single')
-        bottom.set(qn('w:sz'), '6')
-        bottom.set(qn('w:space'), '1')
-        bottom.set(qn('w:color'), '000000')
-        p_bdr.append(bottom)
-        p_pr.append(p_bdr)
+        add_paragraph_border(p, "bottom")

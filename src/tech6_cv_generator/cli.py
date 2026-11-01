@@ -42,6 +42,9 @@ def _cmd_generate(args: argparse.Namespace) -> int:
     if not inputs:
         print("tech6-cv-generator: no JSON inputs found", file=sys.stderr)
         return 2
+    # Deduplicate preserving order: passing both a file and its directory
+    # (or the same file twice) used to generate the same CV twice.
+    inputs = list(dict.fromkeys(inputs))
 
     # Group by parent directory so mapped copies land next to their source.
     from .orchestrator import generate_one, map_schemas
@@ -82,23 +85,41 @@ def _cmd_map(args: argparse.Namespace) -> int:
 
 
 def _cmd_extract(args: argparse.Namespace) -> int:
+    """Extract text, one file at a time, with a clean exit code.
+
+    A corrupt PDF previously raised a raw traceback; now it is reported
+    like any other failure and the run continues with the next file,
+    exiting non-zero at the end. The same applies to scan_inputs'
+    ``[error extracting text: ...]`` strings: those are errors, not
+    extracted text, so they are reported instead of printed as content.
+    """
+    failed = False
     for raw in args.files:
         path = Path(raw)
-        if path.is_dir():
-            for name, text in scan_inputs(path).items():
-                print(f"--- {name} ---")
-                print(text)
+        try:
+            if path.is_dir():
+                for name, text in scan_inputs(path).items():
+                    if text.startswith("[error extracting text:"):
+                        print(f"tech6-cv-generator: {name}: {text}", file=sys.stderr)
+                        failed = True
+                        continue
+                    print(f"--- {name} ---")
+                    print(text)
+                continue
+            suffix = path.suffix.lower()
+            if suffix == ".pdf":
+                text = extract_text_from_pdf(path)
+            elif suffix == ".docx":
+                text = extract_text_from_docx(path)
+            else:
+                print(f"tech6-cv-generator: unsupported file type: {path}", file=sys.stderr)
+                return 2
+        except Exception as exc:
+            print(f"tech6-cv-generator: {path}: {exc}", file=sys.stderr)
+            failed = True
             continue
-        suffix = path.suffix.lower()
-        if suffix == ".pdf":
-            text = extract_text_from_pdf(path)
-        elif suffix == ".docx":
-            text = extract_text_from_docx(path)
-        else:
-            print(f"tech6-cv-generator: unsupported file type: {path}", file=sys.stderr)
-            return 2
         print(text)
-    return 0
+    return 1 if failed else 0
 
 
 def build_parser() -> argparse.ArgumentParser:

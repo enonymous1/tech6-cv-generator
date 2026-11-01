@@ -78,9 +78,21 @@ def map_schemas(schema_dir: Path, json_dir: Path, *, force: bool = False) -> Lis
 
 
 def generate_one(
-    json_path: Path, output_dir: Path, *, write_mapped_copy: bool = True
+    json_path: Path,
+    output_dir: Path,
+    *,
+    write_mapped_copy: bool = False,
+    mapped_dir: Path | None = None,
 ) -> Dict[str, Any]:
-    """Generate one DOCX from ``json_path``. Returns a report entry."""
+    """Generate one DOCX from ``json_path``. Returns a report entry.
+
+    ``write_mapped_copy`` used to default to True and write a
+    ``*_mapped.json`` file *next to the source input*. On the next run
+    that copy was itself picked up as an input, generating a duplicate
+    document for the same expert. Mapped copies are therefore off by
+    default; when explicitly requested, they go to ``mapped_dir`` (or
+    the output directory), never back into the input directory.
+    """
     entry: Dict[str, Any] = {
         "input": json_path.name,
         "output": None,
@@ -98,10 +110,15 @@ def generate_one(
             if not mapped.get("name"):
                 mapped["name"] = PLACEHOLDER_NAME
             if write_mapped_copy:
-                mapped_path = json_path.parent / f"{json_path.stem}_mapped.json"
+                target_dir = mapped_dir if mapped_dir is not None else output_dir
+                target_dir.mkdir(parents=True, exist_ok=True)
+                mapped_path = target_dir / f"{json_path.stem}_mapped.json"
                 mapped_path.write_text(json.dumps(mapped, indent=2), encoding="utf-8")
                 logger.info("Mapped inline %s -> %s", json_path.name, mapped_path.name)
             data = mapped
+        # Copy before annotating: _source_stem is a pipeline concern and
+        # must not leak into the caller's dictionary.
+        data = dict(data)
         data["_source_stem"] = json_path.stem
         builder = FormBuilder(data)
         out = builder.build(output_dir=str(output_dir))

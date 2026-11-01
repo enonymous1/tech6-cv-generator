@@ -1,3 +1,21 @@
+"""Schema mapping: normalize foreign/expert-profile shapes into TECH-6.
+
+Why this module is separate from the builder: the builder renders one
+canonical shape, and every input dialect (a Kosovo-style
+``expert_profile`` document, a flat JSON object, a string contact) is
+translated *here*, once, instead of the builder defensively handling
+five shapes of every field. New dialects belong here as a new
+``map_*_to_tech6`` function plus a branch in ``map_to_canonical``.
+
+Date note: ``DD/MM/YYYY`` is parsed as day-first, matching the TECH-6
+templates this tool was built from. That is an assumption, not a
+universal rule — a ``MM/DD/YYYY`` source would be silently misread,
+which is why the mapper keeps unknown formats verbatim instead of
+guessing.
+"""
+
+from __future__ import annotations
+
 import re
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -93,8 +111,9 @@ def _normalize_languages(langs: Any) -> List[str]:
             if isinstance(item, dict):
                 lang = item.get("language") or item.get("name") or ""
                 prof = item.get("proficiency") or item.get("proficiency_level") or ""
-                entry = f"{lang} ({prof})".strip()
-                out.append(entry if entry != "()" else lang)
+                # Only add the parenthetical when a proficiency exists;
+                # otherwise the output used to read "English ()".
+                out.append(f"{lang} ({prof})" if prof else lang)
             else:
                 out.append(str(item).strip())
     return out
@@ -117,7 +136,7 @@ def map_kosovo_to_tech6(kosovo: Dict[str, Any]) -> Dict[str, Any]:
     # Position (map proposed position info when present)
     meta = ep.get("meta_data", {})
     proposed_code = meta.get("proposed_position_code") or meta.get("proposed_position") or ""
-    proposed_title = meta.get("proposed_position_title") or meta.get("proposed_position_title") or ""
+    proposed_title = meta.get("proposed_position_title") or ""
     if proposed_code or proposed_title:
         # Format as 'K-1, TEAM LEADER' if both present
         if proposed_code and proposed_title:
@@ -206,8 +225,15 @@ def map_kosovo_to_tech6(kosovo: Dict[str, Any]) -> Dict[str, Any]:
     cert = ep.get("certification_statement", {})
     out["certification_text"] = cert.get("text", "")
 
-    # Authorized rep
-    out["authorized_representative"] = cert.get("representative_signature_date") or "{Insert Name of Authorized Representative}"
+    # Authorized representative: this is a *name* field in the output.
+    # The old code mistakenly read representative_signature_date (a date)
+    # into it, so generated CVs showed a date where a name belongs.
+    out["authorized_representative"] = (
+        cert.get("representative_name")
+        or cert.get("authorized_representative")
+        or cert.get("representative")
+        or "{Insert Name of Authorized Representative}"
+    )
 
     return out
 
@@ -284,11 +310,13 @@ def map_to_canonical(data: Dict[str, Any]) -> Dict[str, Any]:
         return map_kosovo_to_tech6(data)
     if data.get("name") or data.get("position_title"):
         return map_flat_to_tech6(data)
-    # unknown shape: try to find an expert_profile inside
+    # Unknown shape: try to find an expert_profile inside. The Kosovo
+    # mapper expects the wrapper ({"expert_profile": ...}), so the inner
+    # dict must be re-wrapped — passing it bare used to map to empty.
     if isinstance(data, dict):
-        for k, v in data.items():
+        for v in data.values():
             if isinstance(v, dict) and "personal_info" in v:
-                return map_kosovo_to_tech6(v)
+                return map_kosovo_to_tech6({"expert_profile": v})
     # fallback: return as-is
     return data
 
